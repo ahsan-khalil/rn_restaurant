@@ -1,30 +1,17 @@
-import { Text, View, StyleSheet } from 'react-native'
-import React, { useState, useEffect } from 'react'
+import { Text, View, StyleSheet, ScrollView } from 'react-native'
+import React, { useState } from 'react'
 import SearchBar from '../components/SearchBar';
-import yelp from '../api/yelp';
+import useSearchResult from '../hooks/useSearchResult';
+import ResultList from '../components/ResultList';
 
 const SearchScreen = () => {
     const [searchTerm, setSearchTerm] = useState('');
-    const [searchResults, setSearchResults] = useState([])
-    const [errorMessage, setErrorMessage] = useState('')
+    const [searchResults, errorMessage, searchAPI] = useSearchResult();
 
-    useEffect(() => { searchAPI('pasta') }, [])
-
-    const searchAPI = async (searchTerm) => {
-        try {
-            const response = await yelp.get('/search', { 
-                params: {
-                    limit: 50,
-                    term: searchTerm,
-                    location: 'san jose'
-                }
-           });
-           setSearchResults(response.data.businesses);     
-           setErrorMessage('')           
-        } catch (error) {
-           setErrorMessage('Something went wrong')
-           setSearchResults([])
-        }
+    const filterResultsByPriceSymbol = (priceSymbol) => {
+        return searchResults.filter( result => {
+            return result.price === priceSymbol
+        });
     };
 
     return (
@@ -33,15 +20,25 @@ const SearchScreen = () => {
                     onSearchTermChange = { (newSearchTerm) => { setSearchTerm(newSearchTerm); }} 
                     onSearchTermSubmit = { () => { console.log(`search ${searchTerm}`); searchAPI(searchTerm) } }
         />
-        <Text style={styles.textStyles}>Search Result Length {searchResults.length}</Text>
+        <Text style={styles.textStyles}>We have found {searchResults.length} results</Text>
         { errorMessage != "" ? <Text style={styles.errorTextStyle}>Error {errorMessage}</Text> : null }
+        <ScrollView 
+            showsHorizontalScrollIndicator={false}
+            showsVerticalScrollIndicator={false}
+        >
+            <ResultList results={filterResultsByPriceSymbol('$')} title="Cost Effective" />
+            <ResultList results={filterResultsByPriceSymbol('$$')} title="Bit Pricier" />
+            <ResultList results={filterResultsByPriceSymbol('$$$')} title="Big Spender" />
+        </ScrollView>
       </View>
     )
 };
 
 const styles = StyleSheet.create({
     textStyles: {
-        fontSize: 30
+        fontSize: 18,
+        marginLeft: 15,
+        marginBottom: 10
     },
     errorTextStyle: {
         fontSize: 18,
@@ -49,6 +46,7 @@ const styles = StyleSheet.create({
     },
     background: {
         backgroundColor: "#FFFFFF",
+        flex: 1,
     }
 });
 
